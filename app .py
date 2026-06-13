@@ -132,11 +132,18 @@ def inject_theme():
         text_color = "#FFFFFF"
         sidebar_bg = "#111111"
         box_bg = "#333333" 
+        input_text_color = "#FFFFFF"
+        label_bg = "#222222"
+        label_text_color = "#FFFFFF"
     else:
+        # Gündüz modu için okunabilir açık renk ayarları
         bg_color = "#FFFFFF"
-        text_color = "#000000"
-        sidebar_bg = "#F0F2F6"
-        box_bg = "#4A4A4A" # Alt kutuların değişmeyen gri rengi
+        text_color = "#131722"
+        sidebar_bg = "#F8F9FA"
+        box_bg = "#F0F2F6"          # Girdi kutuları için görünür açık gri arka plan
+        input_text_color = "#31333F" # Kutuların içindeki yazıların rengi (Koyu)
+        label_bg = "#E9ECEF"        # Başlık etiketlerinin arkası
+        label_text_color = "#131722"
 
     css = f"""
     <style>
@@ -151,10 +158,10 @@ def inject_theme():
             color: {text_color} !important;
         }}
 
-        /* DÜZELTİLEN KISIM: Sadece asıl üst etiket yazılarını hedefle, kutu içi p elemanlarını ezme */
+        /* Düzenlenen Kısım: Form etiketlerinin hem gece hem gündüz modunda okunabilir olması sağlandı */
         div[data-testid="stWidgetLabel"] > label > div > p {{
-            background-color: #000000 !important;
-            color: #FFFFFF !important;
+            background-color: {label_bg} !important;
+            color: {label_text_color} !important;
             padding: 6px 12px !important;
             border-radius: 4px !important;
             display: inline-block !important;
@@ -173,18 +180,26 @@ def inject_theme():
             color: {text_color} !important;
         }}
 
-        /* Girdi Kutularının (Alt Kısımların) Arka Plan Gri Ayarları */
+        /* Girdi Kutularının Dinamik Arka Plan Ayarları */
         div[data-baseweb="select"], div[data-baseweb="input"], .stNumberInput div, .stTextInput div {{
             background-color: {box_bg} !important;
             border-radius: 8px !important;
+            border: 1px solid #ced4da !important;
         }}
         
-        /* Kutuların İçindeki Yazıların Beyaz Kalma Kuralı */
+        /* Kutuların İçindeki Yazıların Temaya Göre Değişimi */
         input, .stSelectbox span, div[data-baseweb="select"] div, .stNumberInput input, .stTextInput input {{
-            color: #FFFFFF !important;
-            -webkit-text-fill-color: #FFFFFF !important;
+            color: {input_text_color} !important;
+            -webkit-text-fill-color: {input_text_color} !important;
         }}
         
+        /* Gündüz modunda placeholder (ipucu) metninin okunabilirliği */
+        input::placeholder, textarea::placeholder {{
+            color: #6c757d !important;
+            -webkit-text-fill-color: #6c757d !important;
+            opacity: 1 !important;
+        }}
+
         /* Açılır menü listesi eleman rengi */
         ul[role="listbox"] li {{
             color: #000000 !important;
