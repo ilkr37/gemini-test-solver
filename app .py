@@ -132,13 +132,11 @@ def inject_theme():
         text_color = "#FFFFFF"
         input_text_color = "#FFFFFF"
         sidebar_bg = "#111111"
-        box_bg = "#222222"
     else:
         bg_color = "#FFFFFF"
         text_color = "#000000"
         input_text_color = "#000000"
         sidebar_bg = "#F0F2F6"
-        box_bg = "#F8F9FA"
 
     css = f"""
     <style>
@@ -163,20 +161,24 @@ def inject_theme():
             color: {text_color} !important;
         }}
 
-        /* Girdi Alanları, Sayı Kutuları ve Seçim Kutularının Kesin Renkleri */
-        .stSelectbox div, .stNumberInput input, .stTextInput input, .stSelectbox span, .stNumberInput div, input {{
+        /* Seçim ve Sayı Giriş Kutularının İçindeki Yazıların Rengini Zorlama */
+        .stSelectbox div, .stNumberInput input, .stTextInput input, .stSelectbox span, input, select, button {{
             color: {input_text_color} !important;
             -webkit-text-fill-color: {input_text_color} !important;
         }}
         
-        /* Seçim kutusunun içindeki aktif metin düzeltmesi */
-        [data-testid="stSelectbox"] div[data-baseweb="select"] div {{
+        /* Streamlit Bileşenlerinin Kapsayıcı Alanlarındaki Yazı Renk Düzeltmeleri */
+        [data-testid="stSelectbox"] div[data-baseweb="select"] div,
+        [data-testid="stNumberInput"] input,
+        [data-testid="stTextInput"] input {{
             color: {input_text_color} !important;
+            -webkit-text-fill-color: {input_text_color} !important;
         }}
         
-        /* Sayı girdisinin içindeki metni zorlama */
-        .stNumberInput input {{
+        /* Sayı Giriş Kutusu (Number Input) İçin Özel Derinlik Ayarı */
+        .stNumberInput div div input {{
             color: {input_text_color} !important;
+            -webkit-text-fill-color: {input_text_color} !important;
         }}
 
         /* Radyo Butonlarındaki Seçenek Metinlerinin ve Etiketlerinin Zıtlığı */
@@ -455,4 +457,4 @@ elif st.session_state.screen == "summary":
                 st.session_state.start_time = time.time()
                 st.session_state.screen = "quiz"
                 st.rerun()
-                
+    
