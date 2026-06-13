@@ -29,16 +29,16 @@ if "active_topic" not in st.session_state:
 # ==========================================
 # 2. GERÇEK GEMINI API ENTEGRASYONU
 # ==========================================
-def call_gemini_api(prompt_type, input_data, difficulty="Orta", question_count= 200):
+def call_gemini_api(prompt_type, input_data, difficulty="Orta", question_count=20):
     """
     Canlı Google Gemini modeline bağlanır.
     İstediğin adet kadar (Sınırsız Soru Desteği) tamamen özgün ÖSYM formatında soru üretir.
     """
     # API anahtarını kodun içinden değil, Streamlit'in gizli kasasından oku
-api_key = st.secrets.get("GEMINI_API_KEY")
+    api_key = st.secrets.get("GEMINI_API_KEY")
     
-    if not api_key or "BURAYA_KENDİ" in api_key:
-        st.error("⚠️ Lütfen kodun içindeki api_key alanına gerçek Gemini API anahtarınızı yazın!")
+    if not api_key:
+        st.error("⚠️ Streamlit Secrets panelinde GEMINI_API_KEY tanımlanmamış!")
         st.stop()
         
     try:
@@ -130,34 +130,61 @@ def inject_theme():
     if st.session_state.gece_modu:
         bg_color = "#000000"
         text_color = "#FFFFFF"
+        sidebar_bg = "#111111"
     else:
         bg_color = "#FFFFFF"
         text_color = "#000000"
+        sidebar_bg = "#F0F2F6"
 
     css = f"""
     <style>
-        .stApp {{
+        /* Ana Uygulama Gövde ve Metin Zıtlık Ayarları */
+        .stApp, [data-testid="stAppViewContainer"] {{
             background-color: {bg_color} !important;
             color: {text_color} !important;
         }}
-        h1, h2, h3, h4, h5, h6, p, label, .stMarkdown, span, div, .stRadio {{
+        
+        /* Tüm Metin Başlıkları ve İşaretçiler İçin Net Renk Kuralı */
+        h1, h2, h3, h4, h5, h6, p, label, .stMarkdown, span, div {{
+            color: {text_color} !important;
+        }}
+
+        /* Yan Menü (Sidebar) Arka Plan ve Zıt Yazı Renk Dengesi */
+        [data-testid="stSidebar"] {{
+            background-color: {sidebar_bg} !important;
+        }}
+        [data-testid="stSidebar"] h1, [data-testid="stSidebar"] h2, 
+        [data-testid="stSidebar"] h3, [data-testid="stSidebar"] p, 
+        [data-testid="stSidebar"] label, [data-testid="stSidebar"] span {{
+            color: {text_color} !important;
+        }}
+
+        /* Streamlit Seçim ve Sayı Kutularındaki Yazıların Okunabilirliği */
+        .stSelectbox div, .stNumberInput input, .stTextInput input {{
             color: {text_color} !important;
         }}
         
+        /* Radyo Butonlarındaki Seçenek Metinlerinin Zıtlığı */
+        [data-testid="stWidgetLabel"] p, [data-testid="stRadio"] label span {{
+            color: {text_color} !important;
+        }}
+        
+        /* Tema Değiştirme Butonlarının Özel Gece/Gündüz Boyamaları */
         {"div.stButton > button:has(div[data-testid='stMarkdownContainer'] p:contains('Gece Modu')) {"
          "background-color: #000000 !important;"
          "color: #FFFFFF !important;"
          "font-weight: bold !important;"
-         "border: 2px solid #000000 !important;"
+         "border: 2px solid #FFFFFF !important;"
          "}" if not st.session_state.gece_modu else ""}
 
         {"div.stButton > button:has(div[data-testid='stMarkdownContainer'] p:contains('Gündüz Modu')) {"
          "background-color: #FFFFFF !important;"
          "color: #000000 !important;"
          "font-weight: bold !important;"
-         "border: 2px solid #FFFFFF !important;"
+         "border: 2px solid #000000 !important;"
          "}" if st.session_state.gece_modu else ""}
 
+        /* Yeşil Özet Oluşturma Buton Stili */
         div:has(.ozet-marker) + div button {{
             background-color: #28a745 !important;
             color: white !important;
@@ -169,11 +196,16 @@ def inject_theme():
             color: white !important;
         }}
 
+        /* Kırmızı Sınav Oluşturma Buton Stili */
         div:has(.sinav-marker) + div button {{
             background-color: #dc3545 !important;
             color: white !important;
             font-weight: bold !important;
             border: none !important;
+        }}
+        div:has(.sinav-marker) + div button:hover {{
+            background-color: #bd2130 !important;
+            color: white !important;
         }}
 
         @media (max-width: 768px) {{
@@ -196,7 +228,7 @@ inject_theme()
 with st.sidebar:
     st.header("⚙️ Soru Ayarları")
     # Sınırsız soru sorma özgürlüğü için dinamik sayı seçici
-    q_count = st.number_input("Testteki Soru Sayısı:", min_value=1, max_value=50, value=20, step=1)
+    q_count = st.number_input("Testteki Soru Sayısı:", min_value=1, max_value=200, value=20, step=1)
 
 # ==========================================
 # 5. PERSISTENT HEADER (Timer & Mode Toggles)
