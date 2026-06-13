@@ -218,7 +218,7 @@ def inject_theme():
         }}
     </style>
     """
-    st.markdown(css, unsafe_transform=True)
+    st.markdown(css, unsafe_allow_html=True)
 
 inject_theme()
 
@@ -251,7 +251,7 @@ if st.session_state.screen == "quiz" and st.session_state.start_time is not None
     elapsed_time = int(time.time() - st.session_state.start_time)
     minutes = elapsed_time // 60
     seconds = elapsed_time % 60
-    st.markdown(f"<div style='text-align: center; font-size: 20px; font-weight: bold;'>⏱️ Toplam Geçen Süre: {minutes:02d}:{seconds:02d}</div>", unsafe_transform=True)
+    st.markdown(f"<div style='text-align: center; font-size: 20px; font-weight: bold;'>⏱️ Toplam Geçen Süre: {minutes:02d}:{seconds:02d}</div>", unsafe_allow_html=True)
     st.write("---")
 
 # ==========================================
@@ -280,7 +280,7 @@ if st.session_state.screen == "input":
     col_btn1, col_btn2 = st.columns(2)
     
     with col_btn1:
-        st.markdown('<div class="sinav-marker"></div>', unsafe_transform=True)
+        st.markdown('<div class="sinav-marker"></div>', unsafe_allow_html=True)
         if st.button("✨ Sınav Oluştur", key="btn_sinav_olustur", use_container_width=True):
             if selected_topic:
                 with st.spinner("🚀 Gemini gerçek zamanlı ÖSYM soruları üretiyor, lütfen bekleyin..."):
@@ -296,7 +296,7 @@ if st.session_state.screen == "input":
                 st.warning("Lütfen bir konu başlığı girin veya bir PDF dosyası yükleyin!")
 
     with col_btn2:
-        st.markdown('<div class="ozet-marker"></div>', unsafe_transform=True)
+        st.markdown('<div class="ozet-marker"></div>', unsafe_allow_html=True)
         if st.button("📝 Konu Özeti Oluştur", key="btn_ozet_olustur", use_container_width=True):
             if selected_topic:
                 with st.spinner("📖 Gemini konuyu analiz ediyor ve özet not çıkarıyor..."):
@@ -412,7 +412,7 @@ elif st.session_state.screen == "results":
             st.markdown(f"❌ *Bu soruda hata yaptınız.* (Seçiminiz: {ans})")
             
         st.markdown(f"**Doğru Cevap:** {q['dogru_cevap']} Şıkkı")
-        st.markdown(f"**Kısa Çözüm:** Doğru şık bu, mesela {q['dogru_cevap']}. Cevap o şıkdaki doğrusu şudur: {q['aciklama']}")
+        st.markdown(f"**Kısa Çözüm:** {q['aciklama']}")
             
         st.write("---")
 
@@ -424,7 +424,7 @@ elif st.session_state.screen == "summary":
     st.markdown(st.session_state.generated_summary)
     
     st.write("---")
-    st.markdown("<p style='text-align: center; font-weight: bold;'>Konuyu pekiştirmek için çıkmış kpss paralelindeki soruları hemen çözün!</p>", unsafe_transform=True)
+    st.markdown("<p style='text-align: center; font-weight: bold;'>Konuyu pekiştirmek için çıkmış kpss paralelindeki soruları hemen çözün!</p>", unsafe_allow_html=True)
     if st.button("🚀 Hazırım, Sınav Oluştur", use_container_width=True):
         with st.spinner("🚀 Gemini bu özetten yola çıkarak sorular hazırlıyor..."):
             st.session_state.generated_quiz = call_gemini_api("quiz", st.session_state.active_topic, question_count=q_count)
