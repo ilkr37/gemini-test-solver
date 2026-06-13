@@ -151,15 +151,16 @@ def inject_theme():
             color: {text_color} !important;
         }}
 
-        /* İSTENEN DEĞİŞİKLİK: Sadece Başlık Yazı Etiketlerinin Arkasını Siyah, Yazısını Beyaz Yapma */
-        [data-testid="stWidgetLabel"] label p {{
+        /* DÜZELTİLEN KISIM: Sadece asıl üst etiket yazılarını hedefle, kutu içi p elemanlarını ezme */
+        div[data-testid="stWidgetLabel"] > label > div > p {{
             background-color: #000000 !important;
             color: #FFFFFF !important;
-            padding: 4px 10px !important;
+            padding: 6px 12px !important;
             border-radius: 4px !important;
             display: inline-block !important;
             width: auto !important;
             font-weight: bold !important;
+            margin-bottom: 4px !important;
         }}
 
         /* Yan Menü (Sidebar) Arka Plan Dengesi */
