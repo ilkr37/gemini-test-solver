@@ -29,7 +29,7 @@ if "active_topic" not in st.session_state:
 # ==========================================
 # 2. GERÇEK GEMINI API ENTEGRASYONU
 # ==========================================
-def call_gemini_api(prompt_type, input_data, difficulty="Orta", question_count=20):
+def call_gemini_api(prompt_type, input_data, difficulty="Orta", question_count= sınırsız):
     """
     Canlı Google Gemini modeline bağlanır.
     İstediğin adet kadar (Sınırsız Soru Desteği) tamamen özgün ÖSYM formatında soru üretir.
