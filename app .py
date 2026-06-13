@@ -1,6 +1,10 @@
 import streamlit as st
 import time
-import random
+import json
+import os
+# Resmi en güncel Google GenAI SDK kütüphanesi
+from google import genai
+from google.genai import types
 
 # ==========================================
 # 1. INITIAL SESSION STATE SETUP
@@ -23,75 +27,106 @@ if "active_topic" not in st.session_state:
     st.session_state.active_topic = ""
 
 # ==========================================
-# 2. CORE SYSTEM PROMPT & API SIMULATION
+# 2. GERÇEK GEMINI API ENTEGRASYONU
 # ==========================================
-def call_gemini_api(prompt_type, input_data, difficulty="Orta"):
+def call_gemini_api(prompt_type, input_data, difficulty="Orta", question_count=20):
     """
-    Simulated Gemini API Call with high temperature, random seeds, and 
-    strict instructions to prioritize actual past KPSS exam questions and ÖSYM formats.
+    Canlı Google Gemini modeline bağlanır.
+    İstediğin adet kadar (Sınırsız Soru Desteği) tamamen özgün ÖSYM formatında soru üretir.
     """
-    # Sonsuz soru çeşitliliği için yüksek sıcaklık (temperature) ve dinamik seed simülasyonu
-    random.seed(time.time() + random.random())
+    # API anahtarını kodun içinden değil, Streamlit'in gizli kasasından oku
+api_key = st.secrets.get("GEMINI_API_KEY")
     
-    # GERÇEK ENTEGRASYONDA BU METİN GEMINI SYSTEM PROMPT / DEVELOPER INSTRUCTION OLARAK VERİLMELİDİR:
-    system_instruction = """
-    Sen uzman bir KPSS ve ÖSYM soru hazırlama komisyonu üyesisin. 
-    Girdi olarak verilen konularda soru üretirken MÜHENDİSLİK ve AKADEMİK titizlikle yaklaşmalı, 
-    ÖNCELİKLE actual past KPSS exam questions (ÖSYM'nin geçmiş yıllarda sorduğu gerçek çıkmış sorular) 
-    ve güncel ÖSYM formatlarını (Ales, Dgs, Kpss güncel mantığı) birincil referans (primary reference) almalısın.
-    Asla birbirini tekrar eden cümle senaryoları, kalıplar veya aynı şıkları üretme (Endless Question Variety). 
-    Soru başına mutlaka 5 seçenek (A, B, C, D, E) üret.
-    """
+    if not api_key or "BURAYA_KENDİ" in api_key:
+        st.error("⚠️ Lütfen kodun içindeki api_key alanına gerçek Gemini API anahtarınızı yazın!")
+        st.stop()
+        
+    try:
+        client = genai.Client(api_key=api_key)
+    except Exception as e:
+        st.error(f"İstemci başlatılamadı, API anahtarınızı kontrol edin: {e}")
+        st.stop()
+
+    # Uzman ÖSYM Komisyon Üyesi Rol Tanımı
+    system_instruction = (
+        "Sen uzman bir KPSS ve ÖSYM soru hazırlama komisyonu üyesisin. "
+        "Girdi olarak verilen konularda içerik üretirken akademik titizlikle yaklaşmalı, "
+        "ÖNCELİKLE ÖSYM'nin geçmiş yıllarda sorduğu gerçek KPSS, ALES, DGS sorularını ve "
+        "güncel ÖSYM mantığını birincil referans almalısın. Asla birbirini tekrar eden kalıplar kullanma."
+    )
     
+    # En stabil ve hızlı çalışan metin modeli
+    model_name = "gemini-2.5-flash"
+
     if prompt_type == "quiz":
-        questions = []
-        # Sınav formatına tam uyumlu 5 soru simülasyonu
-        for i in range(1, 6):
-            choices = {
-                "A": f"ÖSYM'nin en çok kullandığı çeldirici {random.randint(100,999)}",
-                "B": f"Geçmiş KPSS çıkmış soru paralelindeki B seçeneği",
-                "C": f"Doğru yapılandırılmış mantıksal öncül şıkkı",
-                "D": f"Net bilgi içeren net şık {random.randint(100,999)}",
-                "E": f"Güncel ÖSYM formatına uygun E seçeneği"
-            }
-            correct_letter = random.choice(["A", "B", "C", "D", "E"])
-            
-            questions.append({
-                "id": i,
-                "soru": f"💡 [ÇIKMIŞ KPSS PARALELİ] ÖSYM'nin geçmiş yıllarda sorduğu gerçek sınav soruları ve güncel formatı esas alınarak hazırlanmış, {difficulty} zorluk seviyesindeki özgün {input_data} sorusu {i}?",
-                "secenekler": choices,
-                "dogru_cevap": correct_letter,
-                "ipucu": f"İpucu: Bu soruyu çözerken ÖSYM'nin çıkmış sorularındaki ana mantığı ve {input_data} konusunun en temel uç istisnasını hatırlayın.",
-                "aciklama": f"Bu konunun KPSS'deki soru kalıpları incelendiğinde {input_data} kuralının doğrudan test edildiği görülür. ÖSYM standartlarında analiz yapıldığında doğru sonuca ulaşılır."
-            })
-        return questions
+        quiz_prompt = f"""
+        '{input_data}' konusu hakkında, {difficulty} zorluk seviyesinde, KPSS Ortaöğretim formatına tam uyumlu, 
+        çeldiricileri güçlü ve özgün tam {question_count} adet test sorusu hazırla. 
+        Her soru kesinlikle 5 seçenekli (A, B, C, D, E) olmalıdır.
+        
+        Senden çıktıyı kesinlikle aşağıdaki JSON şemasına birebir uyacak şekilde ham bir JSON listesi olarak istiyorum. 
+        Asla başına veya sonuna markdown (```json gibi) ekleme, sadece saf JSON metni döndür:
+        
+        [
+          {{
+            "id": 1,
+            "soru": "[ÇIKMIŞ KPSS PARALELİ] Soru metni...",
+            "secenekler": {{
+              "A": "A seçeneği",
+              "B": "B seçeneği",
+              "C": "C seçeneği",
+              "D": "D seçeneği",
+              "E": "E seçeneği"
+            }},
+            "dogru_cevap": "C",
+            "ipucu": "ÖSYM tarzı ipucu...",
+            "aciklama": "Doğru cevabın gerekçesi ve kural analizi..."
+          }}
+        ]
+        """
+        try:
+            response = client.models.generate_content(
+                model=model_name,
+                contents=quiz_prompt,
+                config=types.GenerateContentConfig(
+                    system_instruction=system_instruction,
+                    temperature=0.75,  # Her seferinde benzersiz sorular için dengeli yaratıcılık
+                    response_mime_type="application/json"
+                )
+            )
+            return json.loads(response.text)
+        except Exception as e:
+            st.error(f"Yapay zeka soru üretirken bir hata oluştu: {e}")
+            return []
         
     elif prompt_type == "summary":
-        return f"""
-# 📄 {input_data} - KPSS / ÖSYM Odaklı Ders Özet Notu
-
-### 📌 Temel Kavramlar ve Tanımlar
-* **ÖSYM'nin Tanımı:** Çıkmış sorularda {input_data} konusu işlenirken kullanılan resmi akademik tanımlar.
-* **Anahtar Kelimeler:** Soru kökünde "özellikle", "kesinlikle" ibaresiyle geçen kritik ipuçları.
-
-### 📐 Kurallar, Formüller ve İstisnalar
-* **KPSS Altın Kuralı:** Geçmiş sınavlarda en az 3 defa yoklanmış olan ana kurallar.
-* **Uç Noktalar:** ÖSYM'nin çeldirici olarak şıklara koymayı en çok sevdiği istisnai örnekler.
-
-### 💡 Hap Bilgiler
-* ÖSYM'nin son yıllardaki soru eğilimlerine göre derlenmiş 5 nokta atışı pratik bilgi.
-* Hafıza teknikleri ve KPSS formatına uygun kısa formüller.
-
-### 🔑 Sınav İpuçları
-* **Tuzaklar:** Çıkmış KPSS sorularında adayların en çok düştüğü yanıltıcı şık tasarımları.
-* **Soru Dağılımı:** Bu konu başlığından sınavda doğrudan gelebilecek soru tiplerinin analizi.
-"""
+        summary_prompt = f"""
+        '{input_data}' konusu hakkında KPSS Ortaöğretim sınavına hazırlanan bir adayın mutlaka bilmesi gereken, 
+        ÖSYM formatına uygun, detaylı, akademik ve taktiksel bir ders özeti hazırla.
+        Özet içerisinde şu başlıklar mutlaka Markdown formatında bulunsun:
+        - 📌 Temel Kavramlar ve Tanımlar
+        - 📐 Kurallar, Formüller ve İstisnalar (ÖSYM'nin en çok sorduğu uç noktalar)
+        - 💡 Hap Bilgiler ve Pratik Formüller
+        - 🔑 Sınav İpuçları (Adayların en çok düştüğü şık tuzakları)
+        """
+        try:
+            response = client.models.generate_content(
+                model=model_name,
+                contents=summary_prompt,
+                config=types.GenerateContentConfig(
+                    system_instruction=system_instruction,
+                    temperature=0.3
+                )
+            )
+            return response.text
+        except Exception as e:
+            st.error(f"Yapay zeka özet üretirken bir hata oluştu: {e}")
+            return "Özet oluşturulamadı."
 
 # ==========================================
 # 3. GLOBAL THEME DESIGN & CUSTOM CSS INJECTION
 # ==========================================
 def inject_theme():
-    # Temel renk paletleri belirleniyor
     if st.session_state.gece_modu:
         bg_color = "#000000"
         text_color = "#FFFFFF"
@@ -101,7 +136,6 @@ def inject_theme():
 
     css = f"""
     <style>
-        /* Global Ekran ve Yazı Renklerinin Zorlanması */
         .stApp {{
             background-color: {bg_color} !important;
             color: {text_color} !important;
@@ -110,7 +144,6 @@ def inject_theme():
             color: {text_color} !important;
         }}
         
-        /* İSTEK 1: Gece Modu Butonu - Light Mode'da (Gece Modu OFF iken) Kapkara ve Kalın Beyaz Yazı */
         {"div.stButton > button:has(div[data-testid='stMarkdownContainer'] p:contains('Gece Modu')) {"
          "background-color: #000000 !important;"
          "color: #FFFFFF !important;"
@@ -118,7 +151,6 @@ def inject_theme():
          "border: 2px solid #000000 !important;"
          "}" if not st.session_state.gece_modu else ""}
 
-        /* Gece Modu AÇIK iken Butonun Gündüz Moduna Dönüşme Stili */
         {"div.stButton > button:has(div[data-testid='stMarkdownContainer'] p:contains('Gündüz Modu')) {"
          "background-color: #FFFFFF !important;"
          "color: #000000 !important;"
@@ -126,7 +158,6 @@ def inject_theme():
          "border: 2px solid #FFFFFF !important;"
          "}" if st.session_state.gece_modu else ""}
 
-        /* İSTEK 3: Yeşil Buton CSS Enjeksiyonu (Konu Özeti Oluştur) */
         div:has(.ozet-marker) + div button {{
             background-color: #28a745 !important;
             color: white !important;
@@ -138,7 +169,6 @@ def inject_theme():
             color: white !important;
         }}
 
-        /* Sınav Oluştur Kırmızı/Primary Buton CSS */
         div:has(.sinav-marker) + div button {{
             background-color: #dc3545 !important;
             color: white !important;
@@ -146,7 +176,6 @@ def inject_theme():
             border: none !important;
         }}
 
-        /* Mobil Duyarlılık (Responsive Layout) */
         @media (max-width: 768px) {{
             .stButton button {{
                 width: 100% !important;
@@ -159,29 +188,33 @@ def inject_theme():
     """
     st.markdown(css, unsafe_transform=True)
 
-# CSS enjeksiyonunu başlat
 inject_theme()
 
 # ==========================================
-# 4. PERSISTENT HEADER (Timer & Mode Toggles)
+# 4. SIDEBAR - CONFIGURATION
+# ==========================================
+with st.sidebar:
+    st.header("⚙️ Soru Ayarları")
+    # Sınırsız soru sorma özgürlüğü için dinamik sayı seçici
+    q_count = st.number_input("Testteki Soru Sayısı:", min_value=1, max_value=50, value=20, step=1)
+
+# ==========================================
+# 5. PERSISTENT HEADER (Timer & Mode Toggles)
 # ==========================================
 col_header_left, col_header_right = st.columns([3, 1])
 
 with col_header_left:
-    # Sol üst köşede her zaman aktif olan "Geri Dön" butonu (Giriş ekranı hariç)
     if st.session_state.screen in ["quiz", "results", "summary"]:
         if st.button("← Geri Dön", key="global_back_btn"):
             st.session_state.screen = "input"
             st.rerun()
 
 with col_header_right:
-    # Global Gece Modu Değiştirici Buton
     theme_label = "🌙 Gece Modu" if not st.session_state.gece_modu else "☀️ Gündüz Modu"
     if st.button(theme_label, key="theme_toggle"):
         st.session_state.gece_modu = not st.session_state.gece_modu
         st.rerun()
 
-# Kalıcı Kronometre/Zamanlayıcı (Sadece Quiz çözülürken en üstte sabit kalır ve resetlenmez)
 if st.session_state.screen == "quiz" and st.session_state.start_time is not None:
     elapsed_time = int(time.time() - st.session_state.start_time)
     minutes = elapsed_time // 60
@@ -190,15 +223,14 @@ if st.session_state.screen == "quiz" and st.session_state.start_time is not None
     st.write("---")
 
 # ==========================================
-# 5. SCREEN APPLICATION MANAGER
+# 6. SCREEN APPLICATION MANAGER
 # ==========================================
 
 # --- EKRAN 1: INPUT MODULÜ ---
 if st.session_state.screen == "input":
     st.title("🎯 KPSS & ÖSYM Odaklı Sınav ve Özet Hazırlama Merkezi")
-    st.write("ÖSYM'nin geçmiş yıllardaki gerçek çıkmış sorularını temel alan akıllı hazırlık modülü.")
+    st.write("Google Gemini ile ÖSYM'nin geçmiş yıllardaki gerçek çıkmış sorularını temel alan akıllı hazırlık modülü.")
 
-    # İki Giriş Seçeneği (PDF ve Ders Notu/Dersin Konusu)
     input_type = st.radio("İçerik Kaynağı Seçiniz:", ["Ders Notu / Dersin Konusu", "PDF İçeriğinden"], horizontal=True)
     
     selected_topic = ""
@@ -207,27 +239,27 @@ if st.session_state.screen == "input":
     else:
         uploaded_file = st.file_uploader("PDF Dosyanızı Yükleyin:", type=["pdf"])
         if uploaded_file is not None:
-            selected_topic = f"Yüklenen PDF: {uploaded_file.name}"
+            selected_topic = f"Yüklenen PDF İçeriği: {uploaded_file.name}"
 
-    # Zorluk Seviyesi Seçici
     difficulty = st.selectbox("Zorluk Seviyesi Seçin:", ["Kolay", "Orta", "Zor"], index=1)
 
     st.write("")
     
-    # Butonların Yan Yana Konumlandırılması ve CSS İşaretleyicileri
     col_btn1, col_btn2 = st.columns(2)
     
     with col_btn1:
         st.markdown('<div class="sinav-marker"></div>', unsafe_transform=True)
         if st.button("✨ Sınav Oluştur", key="btn_sinav_olustur", use_container_width=True):
             if selected_topic:
-                st.session_state.active_topic = selected_topic
-                st.session_state.generated_quiz = call_gemini_api("quiz", selected_topic, difficulty)
-                st.session_state.current_question_idx = 0
-                st.session_state.user_answers = {}
-                st.session_state.start_time = time.time()
-                st.session_state.screen = "quiz"
-                st.rerun()
+                with st.spinner("🚀 Gemini gerçek zamanlı ÖSYM soruları üretiyor, lütfen bekleyin..."):
+                    st.session_state.active_topic = selected_topic
+                    st.session_state.generated_quiz = call_gemini_api("quiz", selected_topic, difficulty, q_count)
+                    if st.session_state.generated_quiz:
+                        st.session_state.current_question_idx = 0
+                        st.session_state.user_answers = {}
+                        st.session_state.start_time = time.time()
+                        st.session_state.screen = "quiz"
+                        st.rerun()
             else:
                 st.warning("Lütfen bir konu başlığı girin veya bir PDF dosyası yükleyin!")
 
@@ -235,10 +267,11 @@ if st.session_state.screen == "input":
         st.markdown('<div class="ozet-marker"></div>', unsafe_transform=True)
         if st.button("📝 Konu Özeti Oluştur", key="btn_ozet_olustur", use_container_width=True):
             if selected_topic:
-                st.session_state.active_topic = selected_topic
-                st.session_state.generated_summary = call_gemini_api("summary", selected_topic, difficulty)
-                st.session_state.screen = "summary"
-                st.rerun()
+                with st.spinner("📖 Gemini konuyu analiz ediyor ve özet not çıkarıyor..."):
+                    st.session_state.active_topic = selected_topic
+                    st.session_state.generated_summary = call_gemini_api("summary", selected_topic, difficulty)
+                    st.session_state.screen = "summary"
+                    st.rerun()
             else:
                 st.warning("Lütfen bir konu başlığı girin veya bir PDF dosyası yükleyin!")
 
@@ -251,11 +284,9 @@ elif st.session_state.screen == "quiz":
     if questions:
         current_q = questions[idx]
         
-        # Soru Metni Üst Alanı
         st.subheader(f"Soru {idx + 1} / {len(questions)}")
         st.markdown(f"**{current_q['soru']}**")
         
-        # Seçeneklerin Listelenmesi (Tam Olarak 5 Şık: A, B, C, D, E + Boş Bırak Seçeneği)
         options_list = []
         options_mapping = {}
         for letter, text in current_q["secenekler"].items():
@@ -266,9 +297,8 @@ elif st.session_state.screen == "quiz":
         options_list.append("⚪ Bu Soruyu Boş Bırak")
         options_mapping["⚪ Bu Soruyu Boş Bırak"] = "BOS"
 
-        # Kullanıcının daha önceki sayfalamada verdiği yanıtı hatırlama mantığı
         current_saved_ans = st.session_state.user_answers.get(idx, None)
-        default_index = len(options_list) - 1  # Varsayılan seçim Boş Bırak olsun
+        default_index = len(options_list) - 1
         if current_saved_ans:
             if current_saved_ans == "BOS":
                 default_index = len(options_list) - 1
@@ -281,13 +311,11 @@ elif st.session_state.screen == "quiz":
         user_choice = st.radio("Seçeneğiniz:", options_list, index=default_index, key=f"q_radio_{idx}")
         st.session_state.user_answers[idx] = options_mapping[user_choice]
 
-        # "İpucu Al" Buton ve Açılır Kutu Yapısı (Sorunsuz Dinamik Veri Çekimi)
         with st.expander("💡 İpucu Al"):
             st.info(current_q["ipucu"])
 
         st.write("---")
         
-        # Merkezlenmiş ve Hizalanmış Tek Soru Navigasyon Butonları
         col_nav_left, col_nav_mid, col_nav_right = st.columns([1, 2, 1])
         
         with col_nav_left:
@@ -329,7 +357,6 @@ elif st.session_state.screen == "results":
         else:
             wrong_count += 1
             
-    # Sonuç Metrik Paneli
     col_stat1, col_stat2, col_stat3 = st.columns(3)
     col_stat1.metric("Doğru Sayısı", correct_count)
     col_stat2.metric("Yanlış Sayısı", wrong_count)
@@ -342,18 +369,18 @@ elif st.session_state.screen == "results":
         ans = user_answers.get(i, "BOS")
         st.markdown(f"**Soru {i+1}:** {q['soru']}")
         
+        for letter, text in q["secenekler"].items():
+            st.write(f"{letter}) {text}")
+        
         if ans == "BOS":
             st.markdown("⚠️ *Bu soruyu boş bıraktınız.*")
-            st.markdown(f"**Doğru Cevap:** {q['dogru_cevap']} Şıkkı")
-            st.markdown(f"**Kısa Çözüm:** Doğru şık bu, mesela {q['dogru_cevap']}. Cevap o şıkdaki doğrusu şudur: {q['aciklama']}")
         elif ans == q["dogru_cevap"]:
             st.markdown(f"✅ *Doğru Cevap Verdiniz.* (Seçiminiz: {ans})")
-            st.markdown(f"**Kısa Çözüm:** Doğru şık bu, mesela {q['dogru_cevap']}. Cevap o şıkdaki doğrusu şudur: {q['aciklama']}")
         else:
             st.markdown(f"❌ *Bu soruda hata yaptınız.* (Seçiminiz: {ans})")
-            # İSTEK 3: Tam Şablon Formatı Korunumu ("Doğru şık bu, mesela...")
-            st.markdown(f"**Doğru Cevap:** {q['dogru_cevap']} Şıkkı")
-            st.markdown(f"**Kısa Çözüm:** Doğru şık bu, mesela {q['dogru_cevap']}. Cevap o şıkdaki doğrusu şudur: {q['aciklama']}")
+            
+        st.markdown(f"**Doğru Cevap:** {q['dogru_cevap']} Şıkkı")
+        st.markdown(f"**Kısa Çözüm:** Doğru şık bu, mesela {q['dogru_cevap']}. Cevap o şıkdaki doğrusu şudur: {q['aciklama']}")
             
         st.write("---")
 
@@ -362,16 +389,16 @@ elif st.session_state.screen == "results":
 elif st.session_state.screen == "summary":
     st.subheader(f"📖 Konu Analiz Özeti: {st.session_state.active_topic}")
     
-    # Markdown formatındaki yapılandırılmış özet temiz bir biçimde render edilir
     st.markdown(st.session_state.generated_summary)
     
     st.write("---")
-    # Özet Sayfası Altındaki Hızlı Sınav Başlatma Özelliği
     st.markdown("<p style='text-align: center; font-weight: bold;'>Konuyu pekiştirmek için çıkmış kpss paralelindeki soruları hemen çözün!</p>", unsafe_transform=True)
     if st.button("🚀 Hazırım, Sınav Oluştur", use_container_width=True):
-        st.session_state.generated_quiz = call_gemini_api("quiz", st.session_state.active_topic)
-        st.session_state.current_question_idx = 0
-        st.session_state.user_answers = {}
-        st.session_state.start_time = time.time()
-        st.session_state.screen = "quiz"
-        st.rerun()
+        with st.spinner("🚀 Gemini bu özetten yola çıkarak sorular hazırlıyor..."):
+            st.session_state.generated_quiz = call_gemini_api("quiz", st.session_state.active_topic, question_count=q_count)
+            if st.session_state.generated_quiz:
+                st.session_state.current_question_idx = 0
+                st.session_state.user_answers = {}
+                st.session_state.start_time = time.time()
+                st.session_state.screen = "quiz"
+                st.rerun()
