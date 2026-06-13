@@ -49,7 +49,7 @@ def call_gemini_api(prompt_type, input_data, difficulty="Orta", question_count=2
 
     # Uzman ÖSYM Komisyon Üyesi Rol Tanımı
     system_instruction = (
-        "Sen uzman bir KPSS ve ÖSYM soru hazırlama komisyonu üyesisin. "
+        "Sen uzman bir KPSS og ÖSYM soru hazırlama komisyonu üyesisin. "
         "Girdi olarak verilen konularda içerik üretirken akademik titizlikle yaklaşmalı, "
         "ÖNCELİKLE ÖSYM'nin geçmiş yıllarda sorduğu gerçek KPSS, ALES, DGS sorularını ve "
         "güncel ÖSYM mantığını birincil referans almalısın. Asla birbirini tekrar eden kalıplar kullanma."
@@ -131,12 +131,12 @@ def inject_theme():
         bg_color = "#000000"
         text_color = "#FFFFFF"
         sidebar_bg = "#111111"
-        box_bg = "#333333" # Gece modu kutu rengi
+        box_bg = "#333333" 
     else:
         bg_color = "#FFFFFF"
         text_color = "#000000"
         sidebar_bg = "#F0F2F6"
-        box_bg = "#4A4A4A" # Gündüz modu için siyah yerine şık gri tonu
+        box_bg = "#4A4A4A" # Alt kutuların değişmeyen gri rengi
 
     css = f"""
     <style>
@@ -146,12 +146,23 @@ def inject_theme():
             color: {text_color} !important;
         }}
         
-        /* Tüm Genel Metin Başlıkları İçin Renk Kuralı */
-        h1, h2, h3, h4, h5, h6, p, label, .stMarkdown, [data-testid="stWidgetLabel"] p {{
+        /* Genel Metin Yapıları */
+        h1, h2, h3, h4, h5, h6, p, .stMarkdown, [data-testid="stWidgetLabel"] p {{
             color: {text_color} !important;
         }}
 
-        /* Yan Menü (Sidebar) Arka Plan ve Zıt Yazı Renk Dengesi */
+        /* İSTENEN DEĞİŞİKLİK: Sadece Başlık Yazı Etiketlerinin Arkasını Siyah, Yazısını Beyaz Yapma */
+        [data-testid="stWidgetLabel"] label p {{
+            background-color: #000000 !important;
+            color: #FFFFFF !important;
+            padding: 4px 10px !important;
+            border-radius: 4px !important;
+            display: inline-block !important;
+            width: auto !important;
+            font-weight: bold !important;
+        }}
+
+        /* Yan Menü (Sidebar) Arka Plan Dengesi */
         [data-testid="stSidebar"] {{
             background-color: {sidebar_bg} !important;
         }}
@@ -161,29 +172,28 @@ def inject_theme():
             color: {text_color} !important;
         }}
 
-        /* Girdi Kutularının Arka Planını Gri Yapma Kuralları */
+        /* Girdi Kutularının (Alt Kısımların) Arka Plan Gri Ayarları */
         div[data-baseweb="select"], div[data-baseweb="input"], .stNumberInput div, .stTextInput div {{
             background-color: {box_bg} !important;
             border-radius: 8px !important;
         }}
         
-        /* KUTU İÇİNDEKİ YAZILARI KESİN OLARAK BEYAZ YAPMA */
+        /* Kutuların İçindeki Yazıların Beyaz Kalma Kuralı */
         input, .stSelectbox span, div[data-baseweb="select"] div, .stNumberInput input, .stTextInput input {{
             color: #FFFFFF !important;
             -webkit-text-fill-color: #FFFFFF !important;
         }}
         
-        /* Açılır menü listesinin altındaki elemanların seçilme anı rengi */
+        /* Açılır menü listesi eleman rengi */
         ul[role="listbox"] li {{
-            color: #000000 !important; /* Açılır liste elemanları rahat okunsun diye */
+            color: #000000 !important;
         }}
 
-        /* Radyo Butonlarındaki Seçenek Metinlerinin ve Etiketlerinin Zıtlığı */
+        /* Radyo Butonlarındaki Seçenek Metinleri */
         [data-testid="stRadio"] label span, [data-testid="stRadio"] p {{
             color: {text_color} !important;
         }}
         
-        /* Özel Seçenek Metin Kapsayıcı Düzeltmesi */
         div[data-testid="stMarkdownContainer"] p {{
             color: {text_color} !important;
         }}
@@ -319,7 +329,7 @@ if st.session_state.screen == "input":
         st.markdown('<div class="ozet-marker"></div>', unsafe_allow_html=True)
         if st.button("📝 Konu Özeti Oluştur", key="btn_ozet_olustur", use_container_width=True):
             if selected_topic:
-                with st.spinner("📖 Gemini konuyu analiz ediyor og özet not çıkarıyor..."):
+                with st.spinner("📖 Gemini konuyu analiz ediyor ve özet not çıkarıyor..."):
                     st.session_state.active_topic = selected_topic
                     st.session_state.generated_summary = call_gemini_api("summary", selected_topic, difficulty)
                     st.session_state.screen = "summary"
