@@ -132,11 +132,13 @@ def inject_theme():
         text_color = "#FFFFFF"
         input_text_color = "#FFFFFF"
         sidebar_bg = "#111111"
+        box_bg = "#222222"
     else:
         bg_color = "#FFFFFF"
         text_color = "#000000"
         input_text_color = "#000000"
         sidebar_bg = "#F0F2F6"
+        box_bg = "#F8F9FA"
 
     css = f"""
     <style>
@@ -161,11 +163,22 @@ def inject_theme():
             color: {text_color} !important;
         }}
 
-        /* Streamlit Girdi ve Sayı Kutularındaki Yazıların Okunabilirliği */
-        .stSelectbox div, .stNumberInput input, .stTextInput input, .stSelectbox span {{
+        /* Girdi Alanları, Sayı Kutuları ve Seçim Kutularının Kesin Renkleri */
+        .stSelectbox div, .stNumberInput input, .stTextInput input, .stSelectbox span, .stNumberInput div, input {{
+            color: {input_text_color} !important;
+            -webkit-text-fill-color: {input_text_color} !important;
+        }}
+        
+        /* Seçim kutusunun içindeki aktif metin düzeltmesi */
+        [data-testid="stSelectbox"] div[data-baseweb="select"] div {{
             color: {input_text_color} !important;
         }}
         
+        /* Sayı girdisinin içindeki metni zorlama */
+        .stNumberInput input {{
+            color: {input_text_color} !important;
+        }}
+
         /* Radyo Butonlarındaki Seçenek Metinlerinin ve Etiketlerinin Zıtlığı */
         [data-testid="stWidgetLabel"] p, [data-testid="stRadio"] label span, [data-testid="stRadio"] p {{
             color: {text_color} !important;
@@ -442,3 +455,4 @@ elif st.session_state.screen == "summary":
                 st.session_state.start_time = time.time()
                 st.session_state.screen = "quiz"
                 st.rerun()
+                
