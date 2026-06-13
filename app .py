@@ -130,10 +130,12 @@ def inject_theme():
     if st.session_state.gece_modu:
         bg_color = "#000000"
         text_color = "#FFFFFF"
+        input_text_color = "#FFFFFF"
         sidebar_bg = "#111111"
     else:
         bg_color = "#FFFFFF"
         text_color = "#000000"
+        input_text_color = "#000000"
         sidebar_bg = "#F0F2F6"
 
     css = f"""
@@ -159,13 +161,18 @@ def inject_theme():
             color: {text_color} !important;
         }}
 
-        /* Streamlit Seçim ve Sayı Kutularındaki Yazıların Okunabilirliği */
-        .stSelectbox div, .stNumberInput input, .stTextInput input {{
+        /* Streamlit Girdi ve Sayı Kutularındaki Yazıların Okunabilirliği */
+        .stSelectbox div, .stNumberInput input, .stTextInput input, .stSelectbox span {{
+            color: {input_text_color} !important;
+        }}
+        
+        /* Radyo Butonlarındaki Seçenek Metinlerinin ve Etiketlerinin Zıtlığı */
+        [data-testid="stWidgetLabel"] p, [data-testid="stRadio"] label span, [data-testid="stRadio"] p {{
             color: {text_color} !important;
         }}
         
-        /* Radyo Butonlarındaki Seçenek Metinlerinin Zıtlığı */
-        [data-testid="stWidgetLabel"] p, [data-testid="stRadio"] label span {{
+        /* Özel Seçenek Metin Kapsayıcı Düzeltmesi */
+        div[data-testid="stMarkdownContainer"] p {{
             color: {text_color} !important;
         }}
         
@@ -206,7 +213,7 @@ def inject_theme():
         div:has(.sinav-marker) + div button:hover {{
             background-color: #bd2130 !important;
             color: white !important;
-        }}
+            }}
 
         @media (max-width: 768px) {{
             .stButton button {{
@@ -223,12 +230,10 @@ def inject_theme():
 inject_theme()
 
 # ==========================================
-# 4. SIDEBAR - CONFIGURATION
+# 4. SIDEBAR - EMPTY CONTROL (Temizlendi)
 # ==========================================
 with st.sidebar:
-    st.header("⚙️ Soru Ayarları")
-    # Sınırsız soru sorma özgürlüğü için dinamik sayı seçici
-    q_count = st.number_input("Testteki Soru Sayısı:", min_value=1, max_value=200, value=20, step=1)
+    st.write("✨ KPSS Soru Merkezi v2.0")
 
 # ==========================================
 # 5. PERSISTENT HEADER (Timer & Mode Toggles)
@@ -274,6 +279,9 @@ if st.session_state.screen == "input":
             selected_topic = f"Yüklenen PDF İçeriği: {uploaded_file.name}"
 
     difficulty = st.selectbox("Zorluk Seviyesi Seçin:", ["Kolay", "Orta", "Zor"], index=1)
+    
+    # Soru Sayısı Ayarı Yan Menüden (Sidebar) Ana Ekrana Alındı
+    q_count = st.number_input("Testteki Soru Sayısı:", min_value=1, max_value=200, value=20, step=1)
 
     st.write("")
     
