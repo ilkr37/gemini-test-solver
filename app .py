@@ -1,4 +1,4 @@
-import streamlit as st
+İmport streamlit as st
 import time
 import json
 import os
@@ -480,3 +480,6 @@ elif st.session_state.screen == "summary":
                 st.session_state.start_time = time.time()
                 st.session_state.screen = "quiz"
                 st.rerun()
+
+
+
