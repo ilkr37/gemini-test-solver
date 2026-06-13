@@ -102,7 +102,7 @@ def call_gemini_api(prompt_type, input_data, difficulty="Orta", question_count=2
     elif prompt_type == "summary":
         summary_prompt = f"""
         '{input_data}' konusu hakkında KPSS Ortaöğretim sınavına hazırlanan bir adayın mutlaka bilmesi gereken, 
-        ÖSYM formatına uygun, detaylı, akademik ve taktiksel bir ders özeti hazırla.
+        ÖSYM formatına uygun, detaylı, akademik og taktiksel bir ders özeti hazırla.
         Özet içerisinde şu başlıklar mutlaka Markdown formatında bulunsun:
         - 📌 Temel Kavramlar ve Tanımlar
         - 📐 Kurallar, Formüller ve İstisnalar (ÖSYM'nin en çok sorduğu uç noktalar)
@@ -130,13 +130,13 @@ def inject_theme():
     if st.session_state.gece_modu:
         bg_color = "#000000"
         text_color = "#FFFFFF"
-        input_text_color = "#FFFFFF"
         sidebar_bg = "#111111"
+        box_bg = "#333333" # Gece modu kutu rengi
     else:
         bg_color = "#FFFFFF"
         text_color = "#000000"
-        input_text_color = "#000000"
         sidebar_bg = "#F0F2F6"
+        box_bg = "#4A4A4A" # Gündüz modu için siyah yerine şık gri tonu
 
     css = f"""
     <style>
@@ -146,8 +146,8 @@ def inject_theme():
             color: {text_color} !important;
         }}
         
-        /* Tüm Metin Başlıkları ve İşaretçiler İçin Net Renk Kuralı */
-        h1, h2, h3, h4, h5, h6, p, label, .stMarkdown, span, div {{
+        /* Tüm Genel Metin Başlıkları İçin Renk Kuralı */
+        h1, h2, h3, h4, h5, h6, p, label, .stMarkdown, [data-testid="stWidgetLabel"] p {{
             color: {text_color} !important;
         }}
 
@@ -161,28 +161,25 @@ def inject_theme():
             color: {text_color} !important;
         }}
 
-        /* Seçim ve Sayı Giriş Kutularının İçindeki Yazıların Rengini Zorlama */
-        .stSelectbox div, .stNumberInput input, .stTextInput input, .stSelectbox span, input, select, button {{
-            color: {input_text_color} !important;
-            -webkit-text-fill-color: {input_text_color} !important;
+        /* Girdi Kutularının Arka Planını Gri Yapma Kuralları */
+        div[data-baseweb="select"], div[data-baseweb="input"], .stNumberInput div, .stTextInput div {{
+            background-color: {box_bg} !important;
+            border-radius: 8px !important;
         }}
         
-        /* Streamlit Bileşenlerinin Kapsayıcı Alanlarındaki Yazı Renk Düzeltmeleri */
-        [data-testid="stSelectbox"] div[data-baseweb="select"] div,
-        [data-testid="stNumberInput"] input,
-        [data-testid="stTextInput"] input {{
-            color: {input_text_color} !important;
-            -webkit-text-fill-color: {input_text_color} !important;
+        /* KUTU İÇİNDEKİ YAZILARI KESİN OLARAK BEYAZ YAPMA */
+        input, .stSelectbox span, div[data-baseweb="select"] div, .stNumberInput input, .stTextInput input {{
+            color: #FFFFFF !important;
+            -webkit-text-fill-color: #FFFFFF !important;
         }}
         
-        /* Sayı Giriş Kutusu (Number Input) İçin Özel Derinlik Ayarı */
-        .stNumberInput div div input {{
-            color: {input_text_color} !important;
-            -webkit-text-fill-color: {input_text_color} !important;
+        /* Açılır menü listesinin altındaki elemanların seçilme anı rengi */
+        ul[role="listbox"] li {{
+            color: #000000 !important; /* Açılır liste elemanları rahat okunsun diye */
         }}
 
         /* Radyo Butonlarındaki Seçenek Metinlerinin ve Etiketlerinin Zıtlığı */
-        [data-testid="stWidgetLabel"] p, [data-testid="stRadio"] label span, [data-testid="stRadio"] p {{
+        [data-testid="stRadio"] label span, [data-testid="stRadio"] p {{
             color: {text_color} !important;
         }}
         
@@ -322,7 +319,7 @@ if st.session_state.screen == "input":
         st.markdown('<div class="ozet-marker"></div>', unsafe_allow_html=True)
         if st.button("📝 Konu Özeti Oluştur", key="btn_ozet_olustur", use_container_width=True):
             if selected_topic:
-                with st.spinner("📖 Gemini konuyu analiz ediyor ve özet not çıkarıyor..."):
+                with st.spinner("📖 Gemini konuyu analiz ediyor og özet not çıkarıyor..."):
                     st.session_state.active_topic = selected_topic
                     st.session_state.generated_summary = call_gemini_api("summary", selected_topic, difficulty)
                     st.session_state.screen = "summary"
@@ -457,4 +454,3 @@ elif st.session_state.screen == "summary":
                 st.session_state.start_time = time.time()
                 st.session_state.screen = "quiz"
                 st.rerun()
-    
