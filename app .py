@@ -59,7 +59,8 @@ def call_gemini_api(prompt_type, input_data, question_count=10):
         "ve ağırlıklı olarak KPSS Ortaöğretim müfredatı/seviyesi hedeflenmelidir."
     )
     
-    model_name = "gemini-2.5-flash"
+    # Model 1.5 Flash olarak değiştirildi (Ücretsiz kotası çok daha yüksektir)
+    model_name = "gemini-1.5-flash"
 
     if prompt_type == "quiz":
         quiz_prompt = f"""
@@ -388,4 +389,4 @@ elif st.session_state.screen == "results":
 elif st.session_state.screen == "summary":
     st.subheader(f"📖 Konu Özeti: {st.session_state.active_topic}")
     st.markdown(st.session_state.generated_summary)
-
+    
