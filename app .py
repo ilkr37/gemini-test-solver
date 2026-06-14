@@ -1,4 +1,4 @@
-İmport streamlit as st
+import streamlit as st
 import time
 import json
 import os
