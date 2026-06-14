@@ -199,7 +199,7 @@ with st.sidebar:
         st.write("Sınav devam ediyor...")
 
 # ==========================================
-# 5. PERSISTENT HEADER (Timer & Back Button)
+# 5. PERSISTENT HEADER (Back Button)
 # ==========================================
 col_header_left, col_header_right = st.columns([3, 1])
 
@@ -209,12 +209,8 @@ with col_header_left:
             st.session_state.screen = "input"
             st.rerun()
 
-if st.session_state.screen == "quiz" and st.session_state.start_time is not None:
-    elapsed_time = int(time.time() - st.session_state.start_time)
-    minutes = elapsed_time // 60
-    seconds = elapsed_time % 60
-    st.markdown(f"<div style='text-align: center; font-size: 20px; font-weight: bold;'>⏱️ Geçen Süre: {minutes:02d}:{seconds:02d}</div>", unsafe_allow_html=True)
-    st.write("---")
+# (Süreyle ilgili tüm satırlar burada silindi)
+
 
 # ==========================================
 # 6. SCREEN APPLICATION MANAGER
