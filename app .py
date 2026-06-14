@@ -1,5 +1,4 @@
-import streamlit as st
-import streamlit.components.v1 as components
+İmport streamlit as st
 import time
 import json
 import os
@@ -14,8 +13,6 @@ if "screen" not in st.session_state:
     st.session_state.screen = "input"  # input, quiz, results, summary
 if "start_time" not in st.session_state:
     st.session_state.start_time = None
-if "end_time" not in st.session_state:
-    st.session_state.end_time = None
 if "current_question_idx" not in st.session_state:
     st.session_state.current_question_idx = 0
 if "user_answers" not in st.session_state:
@@ -35,6 +32,7 @@ def call_gemini_api(prompt_type, input_data, question_count=10):
     Canlı Google Gemini modeline bağlanır.
     İstediğin adet kadar (Sınırsız Soru Desteği) tamamen özgün ÖSYM formatında soru üretir.
     """
+    # API Anahtarını almanın güvenli ve çoklu yöntemi
     api_key = None
     try:
         api_key = st.secrets["GEMINI_API_KEY"]
@@ -51,6 +49,7 @@ def call_gemini_api(prompt_type, input_data, question_count=10):
         st.error(f"İstemci başlatılamadı, API anahtarınızı kontrol edin: {e}")
         st.stop()
 
+    # Zorluk seviyesi kaldırıldı, ÖSYM Ortaöğretim ve karışık zorluk vurgusu eklendi
     system_instruction = (
         "Sen uzman bir KPSS ve ÖSYM soru hazırlama komisyonu üyesisin. "
         "Girdi olarak verilen konularda içerik üretirken akademik titizlikle yaklaşmalı, "
@@ -59,8 +58,7 @@ def call_gemini_api(prompt_type, input_data, question_count=10):
         "ve ağırlıklı olarak KPSS Ortaöğretim müfredatı/seviyesi hedeflenmelidir."
     )
     
-    # Model 1.5 Flash olarak değiştirildi (Ücretsiz kotası çok daha yüksektir)
-    model_name = "gemini-1.5-flash"
+    model_name = "gemini-2.5-flash"
 
     if prompt_type == "quiz":
         quiz_prompt = f"""
@@ -89,16 +87,7 @@ def call_gemini_api(prompt_type, input_data, question_count=10):
                     response_mime_type="application/json"
                 )
             )
-            
-            # API'den gelen veriyi güvenli şekilde temizle (Markdown işaretlerini sil)
-            raw_text = response.text.strip()
-            if raw_text.startswith("```"):
-                # İlk satırı (```json) ve son satırı (```) kes
-                raw_text = raw_text.split("\n", 1)[-1]
-                raw_text = raw_text.rsplit("\n", 1)[0]
-                
-            return json.loads(raw_text.strip())
-            
+            return json.loads(response.text)
         except Exception as e:
             st.error(f"Yapay zeka soru üretirken hata oluştu: {e}")
             return []
@@ -126,6 +115,7 @@ def call_gemini_api(prompt_type, input_data, question_count=10):
 # 3. GLOBAL THEME DESIGN & CUSTOM CSS (Sadece Beyaz Tema)
 # ==========================================
 def inject_theme():
+    # Sadece beyaz (gündüz) mod için ayarlar
     bg_main = "#FFFFFF"
     bg_sidebar = "#F4F6F9"
     text_color = "#1E1E1E"
@@ -134,6 +124,7 @@ def inject_theme():
 
     css = f"""
     <style>
+        /* Ana Gövde ve Yan Menü */
         .stApp, [data-testid="stAppViewContainer"] {{
             background-color: {bg_main} !important;
             color: {text_color} !important;
@@ -141,9 +132,13 @@ def inject_theme():
         [data-testid="stSidebar"] {{
             background-color: {bg_sidebar} !important;
         }}
+        
+        /* Genel Metinler, Başlıklar ve Markdown İçerikleri */
         h1, h2, h3, h4, h5, h6, p, li, span, label, .stMarkdown p {{
             color: {text_color} !important;
         }}
+
+        /* Girdi Kutuları (Text, Number, Selectbox) */
         .stTextInput > div > div > input, 
         .stNumberInput > div > div > input, 
         .stSelectbox > div > div > div {{
@@ -152,6 +147,8 @@ def inject_theme():
             border: 1px solid #A0A0A0 !important;
             border-radius: 6px !important;
         }}
+
+        /* Radio Butonları (Seçenekler) */
         div[role="radiogroup"] label {{
             background-color: {box_bg} !important;
             color: {box_text} !important;
@@ -161,10 +158,13 @@ def inject_theme():
             margin-bottom: 8px;
             box-shadow: 0 1px 3px rgba(0,0,0,0.05);
         }}
+        
         div[role="radiogroup"] label p {{
             color: {box_text} !important;
             font-weight: 500 !important;
         }}
+
+        /* İpucu (Expander) Arka Planı */
         .streamlit-expanderHeader {{
             background-color: {bg_sidebar} !important;
             color: {text_color} !important;
@@ -177,6 +177,8 @@ def inject_theme():
             border: 1px solid #D0D0D0 !important;
             border-top: none !important;
         }}
+
+        /* İpucu içindeki INFO kutuları */
         .stAlert {{
             background-color: {bg_sidebar} !important;
             color: {text_color} !important;
@@ -197,7 +199,7 @@ with st.sidebar:
         st.write("Sınav devam ediyor...")
 
 # ==========================================
-# 5. PERSISTENT HEADER (Live Timer & Back Button)
+# 5. PERSISTENT HEADER (Timer & Back Button)
 # ==========================================
 col_header_left, col_header_right = st.columns([3, 1])
 
@@ -207,32 +209,11 @@ with col_header_left:
             st.session_state.screen = "input"
             st.rerun()
 
-# Canlı (Otomatik) Javascript Zamanlayıcısı
 if st.session_state.screen == "quiz" and st.session_state.start_time is not None:
-    start_ts = st.session_state.start_time
-    components.html(
-        f"""
-        <div id="live_timer" style="text-align: center; font-size: 20px; font-weight: bold; font-family: sans-serif; color: #1E1E1E;">
-            ⏱️ Geçen Süre: Hesaplanıyor...
-        </div>
-        <script>
-            var startTime = {start_ts};
-            function updateTime() {{
-                var now = Date.now() / 1000;
-                var elapsed = Math.floor(now - startTime);
-                var m = Math.floor(elapsed / 60).toString().padStart(2, '0');
-                var s = (elapsed % 60).toString().padStart(2, '0');
-                var timerDiv = document.getElementById("live_timer");
-                if (timerDiv) {{
-                    timerDiv.innerHTML = "⏱️ Geçen Süre: " + m + ":" + s;
-                }}
-            }}
-            updateTime(); // Hemen başlat
-            setInterval(updateTime, 1000); // Saniyede bir güncelle
-        </script>
-        """,
-        height=40
-    )
+    elapsed_time = int(time.time() - st.session_state.start_time)
+    minutes = elapsed_time // 60
+    seconds = elapsed_time % 60
+    st.markdown(f"<div style='text-align: center; font-size: 20px; font-weight: bold;'>⏱️ Geçen Süre: {minutes:02d}:{seconds:02d}</div>", unsafe_allow_html=True)
     st.write("---")
 
 # ==========================================
@@ -254,6 +235,7 @@ if st.session_state.screen == "input":
         if uploaded_file is not None:
             selected_topic = f"PDF: {uploaded_file.name}"
 
+    # Zorluk seviyesi kaldırıldı, sadece Soru sayısı ayarı kaldı
     q_count = st.number_input("Testteki Soru Sayısı:", min_value=1, max_value=50, value=10, step=1)
     
     st.write("")
@@ -265,13 +247,10 @@ if st.session_state.screen == "input":
                 with st.spinner("🚀 Sorular üretiliyor..."):
                     st.session_state.active_topic = selected_topic
                     st.session_state.generated_quiz = call_gemini_api("quiz", selected_topic, q_count)
-                    
-                    # Eğer JSON parse sorunu yaşanmaz ve veriler başarıyla dolarsa quize geçiş yap
                     if st.session_state.generated_quiz:
                         st.session_state.current_question_idx = 0
                         st.session_state.user_answers = {}
                         st.session_state.start_time = time.time()
-                        st.session_state.end_time = None
                         st.session_state.screen = "quiz"
                         st.rerun()
             else:
@@ -339,7 +318,6 @@ elif st.session_state.screen == "quiz":
         with col_nav_mid:
             if idx == len(questions) - 1:
                 if st.button("🎯 Testi Bitir", use_container_width=True, type="primary"):
-                    st.session_state.end_time = time.time() # Sınavı bitirince zamanı donduruyoruz
                     st.session_state.screen = "results"
                     st.rerun()
 
@@ -355,21 +333,11 @@ elif st.session_state.screen == "results":
         if ans == "BOS": skipped += 1
         elif ans == q["dogru_cevap"]: correct += 1
         else: wrong += 1
-
-    # Çözüm süresini hesapla
-    final_time = 0
-    if st.session_state.start_time:
-        end_t = st.session_state.end_time if st.session_state.end_time else time.time()
-        final_time = int(end_t - st.session_state.start_time)
-        
-    m = final_time // 60
-    s = final_time % 60
             
-    c1, c2, c3, c4 = st.columns(4)
+    c1, c2, c3 = st.columns(3)
     c1.metric("Doğru", correct)
     c2.metric("Yanlış", wrong)
     c3.metric("Boş", skipped)
-    c4.metric("⏱️ Çözüm Süresi", f"{m:02d}:{s:02d}")
     
     st.write("---")
     for i, q in enumerate(questions):
@@ -389,4 +357,6 @@ elif st.session_state.screen == "results":
 elif st.session_state.screen == "summary":
     st.subheader(f"📖 Konu Özeti: {st.session_state.active_topic}")
     st.markdown(st.session_state.generated_summary)
-    
+
+
+ 
