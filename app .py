@@ -230,7 +230,7 @@ if st.session_state.screen == "input":
     st.write("")
     col_btn1, col_btn2 = st.columns(2)
     
-    with col_btn1:
+        with col_btn1:
         if st.button("✨ Sınav Oluştur", key="btn_sinav_olustur", use_container_width=True, type="primary"):
             if selected_topic:
                 with st.spinner("🚀 Sorular üretiliyor..."):
@@ -239,11 +239,12 @@ if st.session_state.screen == "input":
                     if st.session_state.generated_quiz:
                         st.session_state.current_question_idx = 0
                         st.session_state.user_answers = {}
-                        st.session_state.start_time = time.time()
+                        # st.session_state.start_time = time.time()  <-- BU SATIRI SİLDİK
                         st.session_state.screen = "quiz"
                         st.rerun()
             else:
                 st.warning("Lütfen bir konu başlığı girin!")
+                
 
     with col_btn2:
         if st.button("📝 Konu Özeti Çıkar", key="btn_ozet_olustur", use_container_width=True, type="secondary"):
