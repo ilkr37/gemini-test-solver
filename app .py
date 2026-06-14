@@ -1,5 +1,4 @@
 import streamlit as st
-import time
 import json
 import os
 # Resmi en güncel Google GenAI SDK kütüphanesi
@@ -347,4 +346,4 @@ elif st.session_state.screen == "results":
 elif st.session_state.screen == "summary":
     st.subheader(f"📖 Konu Özeti: {st.session_state.active_topic}")
     st.markdown(st.session_state.generated_summary)
-
+    
