@@ -10,19 +10,12 @@ from google.genai import types
 # 1. INITIAL SESSION STATE SETUP
 # ==========================================
 if "screen" not in st.session_state:
-    st.session_state.screen = "input"  # input, quiz, results, summary
-if "start_time" not in st.session_state:
-    st.session_state.start_time = None
+    st.session_state.screen = "input"
+# "start_time" satırını buradan tamamen sildik
 if "current_question_idx" not in st.session_state:
     st.session_state.current_question_idx = 0
-if "user_answers" not in st.session_state:
-    st.session_state.user_answers = {}  # {question_idx: choice_letter}
-if "generated_quiz" not in st.session_state:
-    st.session_state.generated_quiz = []
-if "generated_summary" not in st.session_state:
-    st.session_state.generated_summary = ""
-if "active_topic" not in st.session_state:
-    st.session_state.active_topic = ""
+# ... geri kalanı aynı kalsın
+
 
 # ==========================================
 # 2. GERÇEK GEMINI API ENTEGRASYONU
