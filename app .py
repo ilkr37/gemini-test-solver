@@ -11,8 +11,6 @@ from google.genai import types
 # ==========================================
 if "screen" not in st.session_state:
     st.session_state.screen = "input"  # input, quiz, results, summary
-if "gece_modu" not in st.session_state:
-    st.session_state.gece_modu = False
 if "start_time" not in st.session_state:
     st.session_state.start_time = None
 if "current_question_idx" not in st.session_state:
@@ -111,34 +109,25 @@ def call_gemini_api(prompt_type, input_data, difficulty="Orta", question_count=2
             return "Özet oluşturulamadı."
 
 # ==========================================
-# 3. GLOBAL THEME DESIGN & CUSTOM CSS
+# 3. GLOBAL THEME DESIGN & CUSTOM CSS (Sadece Beyaz Tema)
 # ==========================================
 def inject_theme():
-    # Gece ve Gündüz modları için net ve zıt renk tanımları
-    if st.session_state.gece_modu:
-        bg_main = "#121212"
-        bg_sidebar = "#1E1E1E"
-        text_color = "#FFFFFF"
-        box_bg = "#2D2D2D"
-        box_text = "#FFFFFF"
-        accent_color = "#BB86FC"
-    else:
-        bg_main = "#FFFFFF"
-        bg_sidebar = "#F0F2F6"
-        text_color = "#000000"
-        box_bg = "#FFFFFF"
-        box_text = "#000000"
-        accent_color = "#0068C9"
+    # Sadece beyaz (gündüz) mod için ayarlar
+    bg_main = "#FFFFFF"
+    bg_sidebar = "#F4F6F9"
+    text_color = "#1E1E1E"
+    box_bg = "#FFFFFF"
+    box_text = "#1E1E1E"
 
     css = f"""
     <style>
         /* Ana Gövde ve Yan Menü */
-        .stApp {{
-            background-color: {bg_main};
-            color: {text_color};
+        .stApp, [data-testid="stAppViewContainer"] {{
+            background-color: {bg_main} !important;
+            color: {text_color} !important;
         }}
         [data-testid="stSidebar"] {{
-            background-color: {bg_sidebar};
+            background-color: {bg_sidebar} !important;
         }}
         
         /* Genel Metinler, Başlıklar ve Markdown İçerikleri */
@@ -152,43 +141,45 @@ def inject_theme():
         .stSelectbox > div > div > div {{
             background-color: {box_bg} !important;
             color: {box_text} !important;
-            border: 1px solid #888888 !important;
+            border: 1px solid #A0A0A0 !important;
+            border-radius: 6px !important;
         }}
 
         /* Radio Butonları (Seçenekler) */
         div[role="radiogroup"] label {{
             background-color: {box_bg} !important;
             color: {box_text} !important;
-            padding: 10px;
-            border-radius: 5px;
-            border: 1px solid #888888;
-            margin-bottom: 5px;
+            padding: 12px;
+            border-radius: 8px;
+            border: 1px solid #D0D0D0;
+            margin-bottom: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
         }}
         
         div[role="radiogroup"] label p {{
             color: {box_text} !important;
+            font-weight: 500 !important;
         }}
 
         /* İpucu (Expander) Arka Planı */
         .streamlit-expanderHeader {{
-            background-color: {box_bg} !important;
-            color: {text_color} !important;
-        }}
-        .streamlit-expanderContent {{
             background-color: {bg_sidebar} !important;
             color: {text_color} !important;
+            border-radius: 6px !important;
+            border: 1px solid #D0D0D0 !important;
+        }}
+        .streamlit-expanderContent {{
+            background-color: {bg_main} !important;
+            color: {text_color} !important;
+            border: 1px solid #D0D0D0 !important;
+            border-top: none !important;
         }}
 
         /* İpucu içindeki INFO kutuları */
         .stAlert {{
             background-color: {bg_sidebar} !important;
             color: {text_color} !important;
-        }}
-
-        /* Gece/Gündüz Butonu Özel Stili */
-        .theme-btn-container button {{
-            border: 2px solid {accent_color} !important;
-            border-radius: 20px !important;
+            border: 1px solid #B0CDED !important;
         }}
     </style>
     """
@@ -201,13 +192,11 @@ inject_theme()
 # ==========================================
 with st.sidebar:
     st.write("✨ KPSS Soru Merkezi v2.0")
-    if st.session_state.screen == "input":
-        q_count = st.number_input("Testteki Soru Sayısı:", min_value=1, max_value=50, value=10, step=1)
-    else:
+    if st.session_state.screen != "input":
         st.write("Sınav devam ediyor...")
 
 # ==========================================
-# 5. PERSISTENT HEADER (Timer & Mode Toggles)
+# 5. PERSISTENT HEADER (Timer & Back Button)
 # ==========================================
 col_header_left, col_header_right = st.columns([3, 1])
 
@@ -216,14 +205,6 @@ with col_header_left:
         if st.button("← Ana Ekrana Dön", key="global_back_btn"):
             st.session_state.screen = "input"
             st.rerun()
-
-with col_header_right:
-    theme_label = "☀️ Gündüz Modu" if st.session_state.gece_modu else "🌙 Gece Modu"
-    st.markdown('<div class="theme-btn-container">', unsafe_allow_html=True)
-    if st.button(theme_label, key="theme_toggle"):
-        st.session_state.gece_modu = not st.session_state.gece_modu
-        st.rerun()
-    st.markdown('</div>', unsafe_allow_html=True)
 
 if st.session_state.screen == "quiz" and st.session_state.start_time is not None:
     elapsed_time = int(time.time() - st.session_state.start_time)
@@ -251,7 +232,9 @@ if st.session_state.screen == "input":
         if uploaded_file is not None:
             selected_topic = f"PDF: {uploaded_file.name}"
 
+    # Zorluk seviyesi ve Soru sayısı ayarları alt alta
     difficulty = st.selectbox("Zorluk Seviyesi:", ["Kolay", "Orta", "Zor"], index=1)
+    q_count = st.number_input("Testteki Soru Sayısı:", min_value=1, max_value=50, value=10, step=1)
     
     st.write("")
     col_btn1, col_btn2 = st.columns(2)
