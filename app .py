@@ -11,8 +11,6 @@ from google.genai import types
 # ==========================================
 if "screen" not in st.session_state:
     st.session_state.screen = "input"  # input, quiz, results, summary
-if "start_time" not in st.session_state:
-    st.session_state.start_time = None
 if "current_question_idx" not in st.session_state:
     st.session_state.current_question_idx = 0
 if "user_answers" not in st.session_state:
@@ -199,7 +197,7 @@ with st.sidebar:
         st.write("Sınav devam ediyor...")
 
 # ==========================================
-# 5. PERSISTENT HEADER (Timer & Back Button)
+# 5. PERSISTENT HEADER (Back Button)
 # ==========================================
 col_header_left, col_header_right = st.columns([3, 1])
 
@@ -208,13 +206,6 @@ with col_header_left:
         if st.button("← Ana Ekrana Dön", key="global_back_btn"):
             st.session_state.screen = "input"
             st.rerun()
-
-if st.session_state.screen == "quiz" and st.session_state.start_time is not None:
-    elapsed_time = int(time.time() - st.session_state.start_time)
-    minutes = elapsed_time // 60
-    seconds = elapsed_time % 60
-    st.markdown(f"<div style='text-align: center; font-size: 20px; font-weight: bold;'>⏱️ Geçen Süre: {minutes:02d}:{seconds:02d}</div>", unsafe_allow_html=True)
-    st.write("---")
 
 # ==========================================
 # 6. SCREEN APPLICATION MANAGER
@@ -250,7 +241,6 @@ if st.session_state.screen == "input":
                     if st.session_state.generated_quiz:
                         st.session_state.current_question_idx = 0
                         st.session_state.user_answers = {}
-                        st.session_state.start_time = time.time()
                         st.session_state.screen = "quiz"
                         st.rerun()
             else:
