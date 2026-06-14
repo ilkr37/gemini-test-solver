@@ -27,7 +27,7 @@ if "active_topic" not in st.session_state:
 # ==========================================
 # 2. GERÇEK GEMINI API ENTEGRASYONU
 # ==========================================
-def call_gemini_api(prompt_type, input_data, difficulty="Orta", question_count=20):
+def call_gemini_api(prompt_type, input_data, question_count=10):
     """
     Canlı Google Gemini modeline bağlanır.
     İstediğin adet kadar (Sınırsız Soru Desteği) tamamen özgün ÖSYM formatında soru üretir.
@@ -49,18 +49,21 @@ def call_gemini_api(prompt_type, input_data, difficulty="Orta", question_count=2
         st.error(f"İstemci başlatılamadı, API anahtarınızı kontrol edin: {e}")
         st.stop()
 
+    # Zorluk seviyesi kaldırıldı, ÖSYM Ortaöğretim ve karışık zorluk vurgusu eklendi
     system_instruction = (
         "Sen uzman bir KPSS ve ÖSYM soru hazırlama komisyonu üyesisin. "
         "Girdi olarak verilen konularda içerik üretirken akademik titizlikle yaklaşmalı, "
-        "ÖSYM'nin mantığını referans almalısın. Asla birbirini tekrar eden kalıplar kullanma."
+        "ÖSYM'nin mantığını referans almalısın. Asla birbirini tekrar eden kalıplar kullanma. "
+        "Üreteceğin sorular ÖSYM'nin çıkmış sorularına paralel, farklı zorluk derecelerinin karışımından oluşmalı "
+        "ve ağırlıklı olarak KPSS Ortaöğretim müfredatı/seviyesi hedeflenmelidir."
     )
     
     model_name = "gemini-2.5-flash"
 
     if prompt_type == "quiz":
         quiz_prompt = f"""
-        '{input_data}' konusu hakkında, {difficulty} zorluk seviyesinde, KPSS formatına uygun, 
-        tam {question_count} adet test sorusu hazırla. Her soru kesinlikle 5 seçenekli olmalıdır.
+        '{input_data}' konusu hakkında, ağırlıklı olarak KPSS Ortaöğretim formatına uygun ve çıkmış ÖSYM sorularına paralel, 
+        karışık zorluk seviyelerinde tam {question_count} adet test sorusu hazırla. Her soru kesinlikle 5 seçenekli olmalıdır.
         
         Senden çıktıyı sadece ham bir JSON listesi olarak istiyorum. Asla markdown ekleme:
         [
@@ -91,7 +94,7 @@ def call_gemini_api(prompt_type, input_data, difficulty="Orta", question_count=2
         
     elif prompt_type == "summary":
         summary_prompt = f"""
-        '{input_data}' konusu hakkında KPSS sınavına hazırlanan bir adayın mutlaka bilmesi gereken 
+        '{input_data}' konusu hakkında KPSS Ortaöğretim sınavına hazırlanan bir adayın mutlaka bilmesi gereken 
         detaylı ve taktiksel bir ders özeti hazırla. Markdown formatı kullan.
         """
         try:
@@ -232,8 +235,7 @@ if st.session_state.screen == "input":
         if uploaded_file is not None:
             selected_topic = f"PDF: {uploaded_file.name}"
 
-    # Zorluk seviyesi ve Soru sayısı ayarları alt alta
-    difficulty = st.selectbox("Zorluk Seviyesi:", ["Kolay", "Orta", "Zor"], index=1)
+    # Zorluk seviyesi kaldırıldı, sadece Soru sayısı ayarı kaldı
     q_count = st.number_input("Testteki Soru Sayısı:", min_value=1, max_value=50, value=10, step=1)
     
     st.write("")
@@ -244,7 +246,7 @@ if st.session_state.screen == "input":
             if selected_topic:
                 with st.spinner("🚀 Sorular üretiliyor..."):
                     st.session_state.active_topic = selected_topic
-                    st.session_state.generated_quiz = call_gemini_api("quiz", selected_topic, difficulty, q_count)
+                    st.session_state.generated_quiz = call_gemini_api("quiz", selected_topic, q_count)
                     if st.session_state.generated_quiz:
                         st.session_state.current_question_idx = 0
                         st.session_state.user_answers = {}
@@ -259,7 +261,7 @@ if st.session_state.screen == "input":
             if selected_topic:
                 with st.spinner("📖 Özet çıkarılıyor..."):
                     st.session_state.active_topic = selected_topic
-                    st.session_state.generated_summary = call_gemini_api("summary", selected_topic, difficulty)
+                    st.session_state.generated_summary = call_gemini_api("summary", selected_topic)
                     st.session_state.screen = "summary"
                     st.rerun()
             else:
@@ -355,3 +357,5 @@ elif st.session_state.screen == "results":
 elif st.session_state.screen == "summary":
     st.subheader(f"📖 Konu Özeti: {st.session_state.active_topic}")
     st.markdown(st.session_state.generated_summary)
+
+
