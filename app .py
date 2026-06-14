@@ -224,13 +224,12 @@ if st.session_state.screen == "input":
         if uploaded_file is not None:
             selected_topic = f"PDF: {uploaded_file.name}"
 
-    # Zorluk seviyesi kaldırıldı, sadece Soru sayısı ayarı kaldı
     q_count = st.number_input("Testteki Soru Sayısı:", min_value=1, max_value=50, value=10, step=1)
     
     st.write("")
     col_btn1, col_btn2 = st.columns(2)
     
-        with col_btn1:
+    with col_btn1:
         if st.button("✨ Sınav Oluştur", key="btn_sinav_olustur", use_container_width=True, type="primary"):
             if selected_topic:
                 with st.spinner("🚀 Sorular üretiliyor..."):
@@ -239,11 +238,22 @@ if st.session_state.screen == "input":
                     if st.session_state.generated_quiz:
                         st.session_state.current_question_idx = 0
                         st.session_state.user_answers = {}
-                        # st.session_state.start_time = time.time()  <-- BU SATIRI SİLDİK
                         st.session_state.screen = "quiz"
                         st.rerun()
             else:
                 st.warning("Lütfen bir konu başlığı girin!")
+
+    with col_btn2:
+        if st.button("📝 Konu Özeti Çıkar", key="btn_ozet_olustur", use_container_width=True, type="secondary"):
+            if selected_topic:
+                with st.spinner("📖 Özet çıkarılıyor..."):
+                    st.session_state.active_topic = selected_topic
+                    st.session_state.generated_summary = call_gemini_api("summary", selected_topic)
+                    st.session_state.screen = "summary"
+                    st.rerun()
+            else:
+                st.warning("Lütfen bir konu başlığı girin!")
+                
                 
 
     with col_btn2:
