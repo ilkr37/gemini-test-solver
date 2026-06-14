@@ -88,7 +88,16 @@ def call_gemini_api(prompt_type, input_data, question_count=10):
                     response_mime_type="application/json"
                 )
             )
-            return json.loads(response.text)
+            
+            # API'den gelen veriyi güvenli şekilde temizle (Markdown işaretlerini sil)
+            raw_text = response.text.strip()
+            if raw_text.startswith("```"):
+                # İlk satırı (```json) ve son satırı (```) kes
+                raw_text = raw_text.split("\n", 1)[-1]
+                raw_text = raw_text.rsplit("\n", 1)[0]
+                
+            return json.loads(raw_text.strip())
+            
         except Exception as e:
             st.error(f"Yapay zeka soru üretirken hata oluştu: {e}")
             return []
@@ -255,6 +264,8 @@ if st.session_state.screen == "input":
                 with st.spinner("🚀 Sorular üretiliyor..."):
                     st.session_state.active_topic = selected_topic
                     st.session_state.generated_quiz = call_gemini_api("quiz", selected_topic, q_count)
+                    
+                    # Eğer JSON parse sorunu yaşanmaz ve veriler başarıyla dolarsa quize geçiş yap
                     if st.session_state.generated_quiz:
                         st.session_state.current_question_idx = 0
                         st.session_state.user_answers = {}
