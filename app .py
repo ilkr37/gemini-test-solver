@@ -1,4 +1,4 @@
-import streamlit as st
+İmport streamlit as st
 import time
 import json
 import os
@@ -357,6 +357,4 @@ elif st.session_state.screen == "results":
 elif st.session_state.screen == "summary":
     st.subheader(f"📖 Konu Özeti: {st.session_state.active_topic}")
     st.markdown(st.session_state.generated_summary)
-
-
- 
+    
